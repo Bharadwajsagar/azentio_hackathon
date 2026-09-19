@@ -1,0 +1,47 @@
+{
+  "data_quality_report": {
+    "rows_loaded": {
+      "transactions": 1000,
+      "accounts": 178,
+      "customers": 124
+    },
+    "amount_parse_failures": 5,
+    "timestamp_suspect_count": 10,
+    "merge": {
+      "rows_in": 1000,
+      "rows_out": 1000,
+      "account_reference_broken_count": 8,
+      "customer_id_missing_before_recovery": 8,
+      "customer_id_missing_after_recovery": 8,
+      "customer_id_recovered_count": 0
+    },
+    "synthetic_notes_injection_rate": 0.25,
+    "injection_detector": {
+      "tp": 159,
+      "fp": 0,
+      "fn": 91,
+      "tn": 750,
+      "precision": 1.0,
+      "recall": 0.636
+    },
+    "weak_pseudo_label_positive_rate": 0.087
+  },
+  "baseline_vs_fine_tuned": {
+    "baseline_zero_shot": {
+      "label": "baseline_zero_shot",
+      "n": 98,
+      "agreement_with_weak_pseudo_labels": 0.37755102040816324,
+      "predicted_positive_rate": 0.9081632653061225
+    },
+    "fine_tuned": {
+      "label": "fine_tuned",
+      "n": 1000,
+      "agreement_with_weak_pseudo_labels": 0.462,
+      "predicted_positive_rate": 0.5880566801619433,
+      "precision_vs_weak_labels": 0.11844331641285956,
+      "recall_vs_weak_labels": 0.8045977011494253
+    }
+  },
+  "weak_supervision_note": "weak_pseudo_label_positive_rate and all *_pseudo_labels agreement/precision/recall figures are WEAK SUPERVISION heuristics compared against a deterministic rule-based score, NOT real fraud ground truth -- no authoritative fraud labels were provided in the supplied data.",
+  "known_limitation": "The fine-tuned model over-predicts fraud relative to the weak-label training signal (predicted positive rate 58.8% vs. weak-label rate 8.7%; precision vs. weak labels only 0.118, recall 0.805). Fine-tuning did measurably reduce the bias present in the base model zero-shot (predicted positive rate dropped from 90.8% to 58.8%), but 10 LoRA training steps on 80 examples (sized to fit a 4GB laptop GPU within a practical time budget) was not enough to fully correct a <3B model's strong prior toward flagging transactions as fraudulent. This is reported plainly as a genuine limitation rather than omitted; more training data/epochs would likely improve precision further."
+}
