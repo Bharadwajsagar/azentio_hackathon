@@ -1,0 +1,9 @@
+.venv/
+/transactions.csv
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+outputs/lora_adapter/
+outputs/*.json
+.ipynb_checkpoints/

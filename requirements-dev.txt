@@ -1,0 +1,5 @@
+# Dev tooling: tests + lint/format. Not needed to run the pipeline itself.
+-r requirements.txt
+pytest==9.1.1
+ruff==0.16.8
+black==26.5.1
