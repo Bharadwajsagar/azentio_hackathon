@@ -151,4 +151,15 @@ def fine_tune_lora(
     peft_model.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
     logger.info("fine_tune_lora: adapter saved to %s", output_dir)
+
+    # IMPORTANT: gradient checkpointing (enabled above for training-time memory
+    # headroom) forces use_cache=False, which disables KV-cache reuse during
+    # autoregressive generation -- fine for training, but it silently cripples
+    # inference speed afterwards (every new token recomputes attention over the
+    # whole context instead of reusing cached keys/values). Must be turned back
+    # off before this model is handed to anything that generates text.
+    peft_model.gradient_checkpointing_disable()
+    peft_model.config.use_cache = True
+    peft_model.eval()
+
     return peft_model
