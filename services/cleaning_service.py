@@ -40,20 +40,48 @@ def clean_amount(x):
 # ---------------------------------------------------------------------------
 # Timestamp cleaning
 # ---------------------------------------------------------------------------
-# Real formats found: ISO "YYYY-MM-DD HH:MM:SS", "DD/MM/YYYY HH:MM" (day-first,
-# consistent with the Indian-locale data elsewhere in the file), blank, and
-# the literal string "NOT_AVAILABLE".
+# Real formats found: ISO "YYYY-MM-DD HH:MM:SS", ISO with a "T" separator
+# ("YYYY-MM-DDTHH:MM:SS"), "DD/MM/YYYY HH:MM" (day-first, consistent with the
+# Indian-locale data elsewhere in the file), "MM-DD-YYYY HH:MM:SS" (US
+# month-first, dash-separated -- confirmed by every unambiguous row where one
+# part is >12, e.g. "08-18-2026" only parses as Aug 18, never as a valid
+# day/month if read the other way), blank, and the literal "NOT_AVAILABLE".
+#
+# IMPORTANT: the day-first slash format and the month-first dash format
+# coexist in this data. A single generic `dayfirst=True` fallback silently
+# mis-parses the month-first rows whenever both parts are <=12 (e.g.
+# "08-12-2026" was being read as 8 Dec instead of the correct 12 Aug, a
+# 4-month error with no warning to flag which specific rows were wrong).
+# Each known format is tried explicitly, in a fixed order, so ambiguous rows
+# are resolved by which pattern they match rather than a single fuzzy guess.
+_TIMESTAMP_FORMATS = [
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S",
+    "%m-%d-%Y %H:%M:%S",
+    "%d/%m/%Y %H:%M",
+]
+
+
 def parse_timestamp(x):
     if pd.isna(x):
         return pd.NaT
     s = str(x).strip()
     if s == "" or s.upper() == "NOT_AVAILABLE":
         return pd.NaT
-    ts = pd.to_datetime(s, format="%Y-%m-%d %H:%M:%S", errors="coerce")
-    if pd.isna(ts):
-        ts = pd.to_datetime(s, format="%d/%m/%Y %H:%M", errors="coerce")
-    if pd.isna(ts):
-        ts = pd.to_datetime(s, errors="coerce", dayfirst=True)
+    for fmt in _TIMESTAMP_FORMATS:
+        ts = pd.to_datetime(s, format=fmt, errors="coerce")
+        if pd.notna(ts):
+            return ts
+    # last resort for any format not explicitly seen during profiling --
+    # logged so a genuinely new format doesn't silently slip through unnoticed
+    ts = pd.to_datetime(s, errors="coerce", dayfirst=True)
+    if pd.notna(ts):
+        logger.warning(
+            "parse_timestamp: %r matched none of the known explicit formats, "
+            "fell back to a fuzzy dayfirst guess -> %s",
+            s,
+            ts,
+        )
     return ts
 
 

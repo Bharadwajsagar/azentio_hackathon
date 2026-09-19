@@ -43,6 +43,26 @@ class TestParseTimestamp:
         ts = parse_timestamp("29/07/2026 18:07")
         assert ts == pd.Timestamp("2026-07-29 18:07")
 
+    def test_iso_t_separator_format(self):
+        ts = parse_timestamp("2026-05-16T17:20:47")
+        assert ts == pd.Timestamp("2026-05-16 17:20:47")
+
+    def test_month_first_dash_format_unambiguous(self):
+        # 18 can't be a month, so this can only be Aug 18 -- confirms the
+        # dash format is MM-DD-YYYY, not DD-MM-YYYY
+        ts = parse_timestamp("08-18-2026 12:25:48")
+        assert ts == pd.Timestamp("2026-08-18 12:25:48")
+
+    def test_month_first_dash_format_ambiguous_regression(self):
+        """Regression test: both parts are <=12 here, so a generic
+        dayfirst=True fallback used to silently misread this as 8 December
+        instead of the correct 12 August (a 4-month error), since the dash
+        format in this data is confirmed MM-DD-YYYY by the unambiguous rows,
+        never DD-MM-YYYY. Explicit format matching must resolve this correctly
+        regardless of the ambiguity."""
+        ts = parse_timestamp("08-12-2026 18:48:06")
+        assert ts == pd.Timestamp("2026-08-12 18:48:06")
+
     def test_not_available_is_nat(self):
         assert pd.isna(parse_timestamp("NOT_AVAILABLE"))
 
